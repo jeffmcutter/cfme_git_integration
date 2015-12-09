@@ -93,7 +93,7 @@ then
   make_dirs &&
   dump &&
   clean_dirs
-elif [ $NAME == "automate2cfme"]
+elif [ $NAME == "automate2cfme" ]
 then
   make_dirs &&
   load_automate &&
