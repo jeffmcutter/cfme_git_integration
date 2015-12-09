@@ -6,5 +6,7 @@ Recommend use of SSH keys or other way of caching password.
 
 Create a file in the location you want to push pull from called .cfme with contents of HOST=your_cfme_appliance, for example:
 
+```
 $ cat .cfme 
 HOST=cfme04
+```
