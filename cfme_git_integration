@@ -4,13 +4,23 @@
 
 NAME=$(basename $0)
 
+function usage {
+  echo "$NAME requires a .cfme file with HOST= specified."
+  exit 1
+}
+
 if [ ! -f .cfme ]
 then
-  echo ".cfme file must exist with HOST= to specify the CF appliance to work with."
-  exit 1
+  usage
 fi
 
-HOST=$(awk -F= '/HOST/ {print $2}' .cfme)
+HOST=$(awk -F= '/^HOST/ {print $2}' .cfme)
+
+if [ -z "$HOST" ]
+then
+  usage
+fi
+
 REMOTE_DIR="/tmp/$NAME.$$"
 
 DEST="root@$HOST"
@@ -27,8 +37,42 @@ function make_dirs {
 }
 
 function clean_dirs {
-  status "removing working directories"
-  $SSH rm -rf $REMOTE_DIR
+  status "removing working directories" &&
+  $SSH rm -rf $REMOTE_DIR || exit 1
+}
+
+function pull_dir {
+  status "pulling dir $1" &&
+  rsync -av $DEST:$REMOTE_DIR/$1 . || exit 1
+}
+
+function push_dir {
+  status "pushing dir $1" &&
+  rsync -av $1 $DEST:$REMOTE_DIR/ || exit 1
+}
+
+function dumper_dir {
+  status "dumping $1" &&
+  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1 &&
+  pull_dir $1 || exit 1
+}
+
+function loader_dir {
+  push_dir $1 &&
+  status "loading $1" &&
+  $SSH cd /var/www/miq/vmdb \&\& miqimport $1 $REMOTE_DIR/$1 || exit 1
+}
+
+function dumper_file {
+  status "dumping $1" &&
+  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1/$1.yml &&
+  pull_dir $1 || exit 1
+}
+
+function loader_file {
+  status "loading $1" &&
+  push_dir $1 &&
+  $SSH miqimport $1 $REMOTE_DIR/$1/$1.yml || exit 1
 }
 
 function dump_automate {
@@ -40,41 +84,7 @@ function dump_automate {
   status "unzipping automate.zip into ./automate" &&
   unzip -q -d automate -o automate_$$.zip &&
   status "removing automate.zip" &&
-  rm -f automate_$$.zip
-}
-
-function pull_dir {
-  status "pulling dir $1" &&
-  rsync -av $DEST:$REMOTE_DIR/$1 .
-}
-
-function push_dir {
-  status "pushing dir $1" &&
-  rsync -av $1 $DEST:$REMOTE_DIR/
-}
-
-function dumper_dir {
-  status "dumping $1" &&
-  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1 &&
-  pull_dir $1
-}
-
-function loader_dir {
-  status "loading $1" &&
-  push_dir $1 &&
-  $SSH cd /var/www/miq/vmdb \&\& miqimport $1 $REMOTE_DIR/$1
-}
-
-function dumper_file {
-  status "dumping $1" &&
-  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1/$1.yml &&
-  pull_dir $1
-}
-
-function loader_file {
-  status "loading $1" &&
-  push_dir $1 &&
-  $SSH miqimport $1 $REMOTE_DIR/$1/$1.yml
+  rm -f automate_$$.zip || exit 1
 }
 
 function load_automate {
@@ -87,7 +97,7 @@ function load_automate {
   status "remove automate.zip" &&
   rm -f automate_$$.zip &&
   status "importing automate.zip" &&
-  $SSH cd /var/www/miq/vmdb \&\& script/rails runner script/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip
+  $SSH cd /var/www/miq/vmdb \&\& script/rails runner script/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
 }
 
 function dump {
@@ -97,7 +107,7 @@ function dump {
   dumper_file roles &&
   dumper_file tags &&
   dumper_file buttons &&
-  dumper_file customization_templates
+  dumper_file customization_templates || exit 1
   #dumper_dir reports &&
   #dumper_dir policies &&
 }
@@ -109,7 +119,7 @@ function load {
   loader_file roles &&
   loader_file tags &&
   loader_file buttons &&
-  loader_file customization_templates
+  loader_file customization_templates || exit 1
   #loader_dir reports &&
   #loader_dir policies &&
 }
@@ -118,21 +128,21 @@ if [ $NAME == "cfme2here" ]
 then
   make_dirs &&
   dump &&
-  clean_dirs
+  clean_dirs || exit 1
 elif [ $NAME == "automate2here" ]
 then
   make_dirs &&
   dump_automate &&
-  clean_dirs
+  clean_dirs || exit 1
 elif [ $NAME == "here2cfme" ]
 then
   make_dirs &&
   load &&
-  clean_dirs
+  clean_dirs || exit 1
 elif [ $NAME == "automate2cfme" ]
 then
   make_dirs &&
   load_automate &&
-  clean_dirs
+  clean_dirs || exit 1
 fi
 
