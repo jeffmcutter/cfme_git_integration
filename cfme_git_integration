@@ -23,7 +23,7 @@ function status {
 
 function make_dirs {
   status "making working directories"
-  $SSH "if [ ! -d $REMOTE_DIR ]; then mkdir -p $REMOTE_DIR; cd $REMOTE_DIR; mkdir dialogs service_catalogs roles tags buttons customization_templates reports; else exit 1; fi"
+  $SSH "if [ ! -d $REMOTE_DIR ]; then mkdir -p $REMOTE_DIR; else exit 1; fi"
 }
 
 function clean_dirs {
@@ -32,32 +32,49 @@ function clean_dirs {
 }
 
 function dump_automate {
-  status "dumping automate"
+  status "dumping automate" &&
   $SSH cd /var/www/miq/vmdb \&\& script/rails runner script/rake evm:automate:backup BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip OVERWRITE=true &&
-  status "copying automate.zip to ."
+  status "copying automate.zip to ." &&
   scp $DEST:$REMOTE_DIR/automate.zip automate_$$.zip &&
   if [ ! -d automate ]; then mkdir automate; fi &&
-  status "unzipping automate.zip into ./automate"
+  status "unzipping automate.zip into ./automate" &&
   unzip -q -d automate -o automate_$$.zip &&
-  status "removing automate.zip"
+  status "removing automate.zip" &&
   rm -f automate_$$.zip
 }
 
-function rsync_dir {
-  status "rsyncing dir $1"
+function pull_dir {
+  status "pulling dir $1" &&
   rsync -av $DEST:$REMOTE_DIR/$1 .
 }
 
+function push_dir {
+  status "pushing dir $1" &&
+  rsync -av $1 $DEST:$REMOTE_DIR/
+}
+
 function dumper_dir {
-  status "dumping $1"
-  $SSH miqexport $1 $REMOTE_DIR/$1
-  rsync_dir $1
+  status "dumping $1" &&
+  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1 &&
+  pull_dir $1
+}
+
+function loader_dir {
+  status "loading $1" &&
+  push_dir $1 &&
+  $SSH cd /var/www/miq/vmdb \&\& miqimport $1 $REMOTE_DIR/$1
 }
 
 function dumper_file {
-  status "dumping $1"
-  $SSH miqexport $1 $REMOTE_DIR/$1/$1.yml
-  rsync_dir $1
+  status "dumping $1" &&
+  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1/$1.yml &&
+  pull_dir $1
+}
+
+function loader_file {
+  status "loading $1" &&
+  push_dir $1 &&
+  $SSH miqimport $1 $REMOTE_DIR/$1/$1.yml
 }
 
 function load_automate {
@@ -82,10 +99,19 @@ function dump {
   dumper_file buttons &&
   dumper_file customization_templates
   #dumper_dir reports &&
+  #dumper_dir policies &&
 }
 
 function load {
-  load_automate
+  load_automate &&
+  loader_dir dialogs &&
+  loader_dir service_catalogs &&
+  loader_file roles &&
+  loader_file tags &&
+  loader_file buttons &&
+  loader_file customization_templates
+  #loader_dir reports &&
+  #loader_dir policies &&
 }
 
 if [ $NAME == "cfme2here" ]
@@ -93,16 +119,20 @@ then
   make_dirs &&
   dump &&
   clean_dirs
-elif [ $NAME == "automate2cfme" ]
+elif [ $NAME == "automate2here" ]
 then
   make_dirs &&
-  load_automate &&
+  dump_automate &&
   clean_dirs
-
 elif [ $NAME == "here2cfme" ]
 then
   make_dirs &&
   load &&
+  clean_dirs
+elif [ $NAME == "automate2cfme" ]
+then
+  make_dirs &&
+  load_automate &&
   clean_dirs
 fi
 
