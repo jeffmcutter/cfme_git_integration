@@ -107,21 +107,21 @@ function dump {
   dumper_file roles &&
   dumper_file tags &&
   dumper_file buttons &&
+  dumper_dir reports &&
+  dumper_dir policies &&
   dumper_file customization_templates || exit 1
-  #dumper_dir reports &&
-  #dumper_dir policies &&
 }
 
 function load {
-  load_automate &&
+  #load_automate &&
   loader_dir dialogs &&
   loader_dir service_catalogs &&
   loader_file roles &&
   loader_file tags &&
   loader_file buttons &&
+  loader_dir reports &&
+  loader_dir policies &&
   loader_file customization_templates || exit 1
-  #loader_dir reports &&
-  #loader_dir policies &&
 }
 
 if [ $NAME == "cfme2here" ]
