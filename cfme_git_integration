@@ -43,6 +43,7 @@ function clean_dirs {
 
 function pull_dir {
   status "pulling dir $1" &&
+  if [ -d $1 ]; then rm -rf $1; fi &&
   rsync -av $DEST:$REMOTE_DIR/$1 . || exit 1
 }
 
@@ -80,7 +81,8 @@ function dump_automate {
   $SSH cd /var/www/miq/vmdb \&\& script/rails runner script/rake evm:automate:backup BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip OVERWRITE=true &&
   status "copying automate.zip to ." &&
   scp $DEST:$REMOTE_DIR/automate.zip automate_$$.zip &&
-  if [ ! -d automate ]; then mkdir automate; fi &&
+  if [ -d automate ]; then rm -rf automate; fi &&
+  mkdir automate &&
   status "unzipping automate.zip into ./automate" &&
   unzip -q -d automate -o automate_$$.zip &&
   status "removing automate.zip" &&
