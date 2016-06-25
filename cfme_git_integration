@@ -116,13 +116,13 @@ function dump {
 
 function load {
   #load_automate &&
-  loader_dir dialogs &&
-  loader_dir service_catalogs &&
   loader_file roles &&
   loader_file tags &&
-  loader_file buttons &&
   loader_dir reports &&
   loader_dir policies &&
+  loader_dir dialogs &&
+  loader_file buttons &&
+  loader_dir service_catalogs &&
   loader_file customization_templates || exit 1
 }
 
