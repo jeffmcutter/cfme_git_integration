@@ -78,7 +78,7 @@ function loader_file {
 
 function dump_automate {
   status "dumping automate" &&
-  $SSH cd /var/www/miq/vmdb \&\& script/rails runner script/rake evm:automate:backup BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip OVERWRITE=true &&
+  $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:backup BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip OVERWRITE=true &&
   status "copying automate.zip to ." &&
   scp $DEST:$REMOTE_DIR/automate.zip automate_$$.zip &&
   if [ -d automate ]; then rm -rf automate; fi &&
@@ -99,7 +99,7 @@ function load_automate {
   status "remove automate.zip" &&
   rm -f automate_$$.zip &&
   status "importing automate.zip" &&
-  $SSH cd /var/www/miq/vmdb \&\& script/rails runner script/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
+  $SSH cd /var/www/miq/vmdb \&\& bin/rails runner bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
 }
 
 function dump {
