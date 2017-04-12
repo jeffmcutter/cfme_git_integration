@@ -99,7 +99,7 @@ function load_automate {
   status "remove automate.zip" &&
   rm -f automate_$$.zip &&
   status "importing automate.zip" &&
-  $SSH cd /var/www/miq/vmdb \&\& bin/rails runner bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
+  $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
 }
 
 function dump {
@@ -119,16 +119,34 @@ function dump {
 }
 
 function load {
-  #load_automate &&
-  #loader_file roles &&
-  #loader_file tags &&
-  #loader_dir reports &&
-  #loader_dir policies &&
-  #loader_dir service_dialogs &&
-  #loader_file buttons &&
-  #loader_dir service_catalogs &&
-  #loader_file customization_templates || exit 1
-  echo "load is dangerous do it manually"
+  echo
+  echo "Load is dangerous, particularly loading stuff onto an existing VMDB with other stuff in it already."
+  echo
+  read -p "Are you sure you want to do this? (y/n)" answer
+  echo
+  case $answer in
+    [Yy]* )
+      echo "OK, here we go!"
+      echo
+      load_automate &&
+      loader_dir provision_dialogs &&
+      loader_dir service_dialogs &&
+      loader_file roles &&
+      loader_file tags &&
+      loader_file buttons &&
+      loader_file customization_templates &&
+      loader_dir policies &&
+      loader_dir alerts &&
+      loader_dir alertsets &&
+      loader_dir widgets &&
+      loader_dir service_catalogs
+      ;;
+    * )
+      echo "OK, better safe than sorry."
+      echo
+      exit
+      ;;
+  esac
 }
 
 if [ $NAME == "cfme2here" ]
