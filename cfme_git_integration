@@ -127,7 +127,6 @@ function load {
   case $answer in
     [Yy]* )
       echo "OK, here we go!"
-      echo
       load_automate &&
       loader_dir provision_dialogs &&
       loader_dir service_dialogs &&
