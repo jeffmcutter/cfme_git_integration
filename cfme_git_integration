@@ -59,9 +59,14 @@ function dumper_dir {
 }
 
 function loader_dir {
-  push_dir $1 &&
-  status "loading $1" &&
-  $SSH cd /var/www/miq/vmdb \&\& miqimport $1 $REMOTE_DIR/$1 || exit 1
+  if [ -d "$1" ]
+  then
+    push_dir $1 &&
+    status "loading $1" &&
+    $SSH cd /var/www/miq/vmdb \&\& miqimport $1 $REMOTE_DIR/$1 || exit 1
+  else
+   status "$1 not found, skipping."
+  fi
 }
 
 function dumper_file {
@@ -71,9 +76,14 @@ function dumper_file {
 }
 
 function loader_file {
-  status "loading $1" &&
-  push_dir $1 &&
-  $SSH miqimport $1 $REMOTE_DIR/$1/$1.yml || exit 1
+  if [ -f "$1/$1.yml" ]
+  then
+    status "loading $1" &&
+    push_dir $1 &&
+    $SSH miqimport $1 $REMOTE_DIR/$1/$1.yml || exit 1
+  else
+    status "$1 not found, skipping."
+  fi
 }
 
 function dump_automate {
@@ -90,16 +100,21 @@ function dump_automate {
 }
 
 function load_automate {
-  cd automate &&
-  status "zipping ./automate" &&
-  zip -q -r ../automate_$$.zip * &&
-  cd - > /dev/null 2>&1 &&
-  status "scp automate.zip to $DEST:$REMOTE_DIR" &&
-  scp automate_$$.zip $DEST:$REMOTE_DIR/automate.zip &&
-  status "remove automate.zip" &&
-  rm -f automate_$$.zip &&
-  status "importing automate.zip" &&
-  $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
+  if [ -d "automate" ]
+  then
+    cd automate &&
+    status "zipping ./automate" &&
+    zip -q -r ../automate_$$.zip * &&
+    cd - > /dev/null 2>&1 &&
+    status "scp automate.zip to $DEST:$REMOTE_DIR" &&
+    scp automate_$$.zip $DEST:$REMOTE_DIR/automate.zip &&
+    status "remove automate.zip" &&
+    rm -f automate_$$.zip &&
+    status "importing automate.zip" &&
+    $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
+  else
+    status "automate not found, skipping."
+  fi
 }
 
 function dump {
@@ -122,7 +137,7 @@ function load {
   echo
   echo "Load is dangerous, particularly loading stuff onto an existing VMDB with other stuff in it already."
   echo
-  read -p "Are you sure you want to do this? (y/n)" answer
+  read -p "Are you sure you want to do this? (y/n) " answer
   echo
   case $answer in
     [Yy]* )
@@ -138,7 +153,8 @@ function load {
       loader_dir alerts &&
       loader_dir alertsets &&
       loader_dir widgets &&
-      loader_dir service_catalogs
+      loader_dir reports &&
+      loader_dir service_catalogs || exit 1
       ;;
     * )
       echo "OK, better safe than sorry."
