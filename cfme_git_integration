@@ -31,6 +31,25 @@ function status {
   echo "*** $* ***"
 }
 
+function verify_local {
+  status "ensuring $1 is available locally"
+  which $1 > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    status "$1 not found on the local system"
+    exit 1
+  fi
+}
+
+function verify_remote {
+  status "ensuring $1 is available on the appliance"
+  $SSH "rpm -q $1 > /dev/null 2>&1; if [ \$? -ne 0 ]; then yum -y install $1; exit \$?; fi" || ( status "Unable to install $1" ; exit 1 ) 
+}
+
+function verify_rhconsulting_scripts {
+  status "ensuring cfme-rhconsulting-scripts are available"
+  $SSH "if [ ! -x /usr/bin/miqimport ]; then cd /tmp && git clone https://github.com/rhtconsulting/cfme-rhconsulting-scripts.git && cd cfme-rhconsulting-scripts && make install; exit \$?; fi" || ( status "Unable to install cfme-rhconsulting-scripts" ; exit 1 )
+}
+
 function make_dirs {
   status "making working directories"
   $SSH "if [ ! -d $REMOTE_DIR ]; then mkdir -p $REMOTE_DIR; else exit 1; fi"
@@ -163,6 +182,12 @@ function load {
       ;;
   esac
 }
+
+verify_local rsync
+verify_remote rsync || exit 1
+verify_remote git || exit 1
+verify_remote rpm-build || exit 1
+verify_rhconsulting_scripts || exit 1
 
 if [ $NAME == "cfme2here" ]
 then
