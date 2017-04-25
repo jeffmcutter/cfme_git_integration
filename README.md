@@ -6,9 +6,13 @@ Depends on https://github.com/rhtconsulting/cfme-rhconsulting-scripts, and will 
 Requires rsync and git be installed on the CFME appliance and will attempt to install them.  Repos need to be available to the appliance (you may need to subscription-manager register etc.).
 Recommend use of SSH keys or other way of caching password.
 
-Create a file in the location you want to push pull from called .cfme with contents of HOST=your_cfme_appliance, for example:
+Create a file in the location you want to push pull from called .cfme with contents of HOST=your_cfme_appliance and DOMAINS=Domain1 Domain2 etc., for example:
 
 ```
 $ cat .cfme 
 HOST=cfme04
+DOMAINS=Domain1 Domain2 Domain3
+
 ```
+
+Note that the first domain listed will be the lowest priority and the last listed will be the highest priority in Automate.

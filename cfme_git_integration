@@ -5,7 +5,7 @@
 NAME=$(basename $0)
 
 function usage {
-  echo "$NAME requires a .cfme file with HOST= specified."
+  echo "$NAME requires a .cfme file with HOST= and DOMAINS= specified."
   exit 1
 }
 
@@ -15,8 +15,14 @@ then
 fi
 
 HOST=$(awk -F= '/^HOST/ {print $2}' .cfme)
+DOMAINS=$(awk -F= '/^DOMAINS/ {print $2}' .cfme)
 
 if [ -z "$HOST" ]
+then
+  usage
+fi
+
+if [ -z "$DOMAINS" ]
 then
   usage
 fi
@@ -53,6 +59,10 @@ function verify_rhconsulting_scripts {
 function make_dirs {
   status "making working directories"
   $SSH "if [ ! -d $REMOTE_DIR ]; then mkdir -p $REMOTE_DIR; else exit 1; fi"
+  for DOMAIN in $DOMAINS
+  do
+    $SSH "if [ ! -d $REMOTE_DIR/automate/$DOMAIN ]; then mkdir -p $REMOTE_DIR/automate/$DOMAIN; else exit 1; fi"
+  done
 }
 
 function clean_dirs {
@@ -61,30 +71,60 @@ function clean_dirs {
 }
 
 function pull_dir {
+  if [ $(echo $1 | grep '/') ]
+  then
+    DEST_DIR=$(dirname $1)
+  else
+    DEST_DIR="."
+  fi
   status "pulling dir $1" &&
   if [ -d $1 ]; then rm -rf $1; fi &&
-  rsync -av $DEST:$REMOTE_DIR/$1 . || exit 1
+  rsync -av $DEST:$REMOTE_DIR/$1 $DEST_DIR || exit 1
 }
 
 function push_dir {
+  if [ $(echo $1 | grep '/') ]
+  then
+    DEST_DIR="$REMOTE_DIR/$(dirname $1)"
+  else
+    DEST_DIR="$REMOTE_DIR"
+  fi
   status "pushing dir $1" &&
-  rsync -av $1 $DEST:$REMOTE_DIR/ || exit 1
+  rsync -av $1 $DEST:$DEST_DIR/ || exit 1
 }
 
 function dumper_dir {
-  status "dumping $1" &&
-  $SSH mkdir $REMOTE_DIR/$1 \&\& miqexport $1 $REMOTE_DIR/$1 &&
-  pull_dir $1 || exit 1
+  if [[ -n "$2" && $1 == "automate" ]]
+  then
+    DIR="$1/$2"
+    WHAT="domain $2"
+  else
+    DIR=$1
+    WHAT=$1
+  fi
+  MDIR=$1
+  status "dumping $WHAT" &&
+  $SSH mkdir -p $REMOTE_DIR/$DIR \&\& miqexport $WHAT $REMOTE_DIR/$MDIR &&
+  pull_dir $DIR || exit 1
 }
 
 function loader_dir {
-  if [ -d "$1" ]
+  if [[ -n "$2" && $1 == "automate" ]]
   then
-    push_dir $1 &&
-    status "loading $1" &&
-    $SSH cd /var/www/miq/vmdb \&\& miqimport $1 $REMOTE_DIR/$1 || exit 1
+    DIR="$1/$2"
+    WHAT="--overwrite domain $2"
   else
-   status "$1 not found, skipping."
+    DIR=$1
+    WHAT=$1
+  fi
+  MDIR=$1
+  if [ -d "$DIR" ]
+  then
+    push_dir $DIR &&
+    status "loading $WHAT" &&
+    $SSH cd /var/www/miq/vmdb \&\& miqimport $WHAT $REMOTE_DIR/$MDIR || exit 1
+  else
+   status "$DIR not found, skipping."
   fi
 }
 
@@ -105,35 +145,49 @@ function loader_file {
   fi
 }
 
+#function dump_automate {
+#  status "dumping automate" &&
+#  $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:backup BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip OVERWRITE=true &&
+#  status "copying automate.zip to ." &&
+#  scp $DEST:$REMOTE_DIR/automate.zip automate_$$.zip &&
+#  if [ -d automate ]; then rm -rf automate; fi &&
+#  mkdir automate &&
+#  status "unzipping automate.zip into ./automate" &&
+#  unzip -q -d automate -o automate_$$.zip &&
+#  status "removing automate.zip" &&
+#  rm -f automate_$$.zip || exit 1
+#}
+#
+#function load_automate {
+#  if [ -d "automate" ]
+#  then
+#    cd automate &&
+#    status "zipping ./automate" &&
+#    zip -q -r ../automate_$$.zip * &&
+#    cd - > /dev/null 2>&1 &&
+#    status "scp automate.zip to $DEST:$REMOTE_DIR" &&
+#    scp automate_$$.zip $DEST:$REMOTE_DIR/automate.zip &&
+#    status "remove automate.zip" &&
+#    rm -f automate_$$.zip &&
+#    status "importing automate.zip" &&
+#    $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
+#  else
+#    status "automate not found, skipping."
+#  fi
+#}
+
 function dump_automate {
-  status "dumping automate" &&
-  $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:backup BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip OVERWRITE=true &&
-  status "copying automate.zip to ." &&
-  scp $DEST:$REMOTE_DIR/automate.zip automate_$$.zip &&
-  if [ -d automate ]; then rm -rf automate; fi &&
-  mkdir automate &&
-  status "unzipping automate.zip into ./automate" &&
-  unzip -q -d automate -o automate_$$.zip &&
-  status "removing automate.zip" &&
-  rm -f automate_$$.zip || exit 1
+  for DOMAIN in $DOMAINS
+  do
+    dumper_dir automate $DOMAIN
+  done
 }
 
 function load_automate {
-  if [ -d "automate" ]
-  then
-    cd automate &&
-    status "zipping ./automate" &&
-    zip -q -r ../automate_$$.zip * &&
-    cd - > /dev/null 2>&1 &&
-    status "scp automate.zip to $DEST:$REMOTE_DIR" &&
-    scp automate_$$.zip $DEST:$REMOTE_DIR/automate.zip &&
-    status "remove automate.zip" &&
-    rm -f automate_$$.zip &&
-    status "importing automate.zip" &&
-    $SSH cd /var/www/miq/vmdb \&\& bin/rake evm:automate:restore BACKUP_ZIP_FILE=$REMOTE_DIR/automate.zip || exit 1
-  else
-    status "automate not found, skipping."
-  fi
+  for DOMAIN in $DOMAINS
+  do
+    loader_dir automate $DOMAIN
+  done
 }
 
 function dump {
