@@ -16,3 +16,5 @@ DOMAINS=Domain1 Domain2 Domain3
 ```
 
 Note that the first domain listed will be the lowest priority and the last listed will be the highest priority in Automate.
+
+Note that these tools can installed on and run against the same host (for example the VMDB appliance).
