@@ -240,7 +240,7 @@ function load {
 verify_local rsync
 verify_remote rsync || exit 1
 verify_remote git || exit 1
-verify_remote rpm-build || exit 1
+#verify_remote rpm-build || exit 1
 verify_rhconsulting_scripts || exit 1
 
 if [ $NAME == "cfme2here" ]
