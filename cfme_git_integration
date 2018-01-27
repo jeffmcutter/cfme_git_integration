@@ -22,6 +22,9 @@ then
   usage
 fi
 
+echo
+echo "*** working on host $HOST ***"
+
 if [ -z "$DOMAINS" ]
 then
   usage
@@ -203,6 +206,8 @@ function dump {
   dumper_dir alerts &&
   dumper_dir alertsets &&
   dumper_dir policies &&
+  dumper_dir orchestration_templates &&
+  dumper_dir scanitems &&
   dumper_file customization_templates || exit 1
 }
 
@@ -222,11 +227,13 @@ function load {
       loader_file tags &&
       loader_file buttons &&
       loader_file customization_templates &&
+      loader_dir orchestration_templates &&
       loader_dir policies &&
       loader_dir alerts &&
       loader_dir alertsets &&
       loader_dir widgets &&
       loader_dir reports &&
+      loader_dir scanitems &&
       loader_dir service_catalogs || exit 1
       ;;
     * )
