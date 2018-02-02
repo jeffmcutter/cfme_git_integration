@@ -198,9 +198,9 @@ function dump {
   dumper_dir provision_dialogs &&
   dumper_dir service_dialogs &&
   dumper_dir service_catalogs &&
-  dumper_file roles &&
+  dumper_dir roles &&
   dumper_file tags &&
-  dumper_file buttons &&
+  dumper_dir buttons &&
   dumper_dir reports &&
   dumper_dir widgets &&
   dumper_dir alerts &&
@@ -223,9 +223,9 @@ function load {
       load_automate &&
       loader_dir provision_dialogs &&
       loader_dir service_dialogs &&
-      loader_file roles &&
+      loader_dir roles &&
       loader_file tags &&
-      loader_file buttons &&
+      loader_dir buttons &&
       loader_file customization_templates &&
       loader_dir orchestration_templates &&
       loader_dir policies &&
