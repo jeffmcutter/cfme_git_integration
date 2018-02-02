@@ -1,3 +1,6 @@
+
+Note that the rhtconsulting/cfme-rhconsulting-scripts now have support for importing and exporting all types making this script somewhat unnecessary.  It still works as of now though and does handle moving the parts to/from the appliance to whereever you want them.
+
 # cfme_git_integration
 Allow syncronization of cfme bits from remote appliance to here over ssh using cfme-rhconsulting-scripts.  Good for using with git.
 
