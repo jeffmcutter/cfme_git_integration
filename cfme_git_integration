@@ -16,6 +16,7 @@ fi
 
 HOST=$(awk -F= '/^HOST/ {print $2}' .cfme)
 DOMAINS=$(awk -F= '/^DOMAINS/ {print $2}' .cfme)
+USER=$(awk -F= '/^USER/ {print $2}' .cfme)
 
 if [ -z "$HOST" ]
 then
@@ -30,9 +31,14 @@ then
   usage
 fi
 
+if [ -z "$USER" ]
+then
+  USER=root
+fi
+
 REMOTE_DIR="/tmp/$NAME.$$"
 
-DEST="root@$HOST"
+DEST="$USER@$HOST"
 SSH="ssh $DEST"
 
 function status {

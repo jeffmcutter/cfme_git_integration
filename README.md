@@ -15,6 +15,7 @@ Create a file in the location you want to push pull from called .cfme with conte
 $ cat .cfme 
 HOST=cfme04
 DOMAINS=Domain1 Domain2 Domain3
+USER=root
 
 ```
 
