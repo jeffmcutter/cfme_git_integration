@@ -214,6 +214,8 @@ function dump {
   dumper_dir policies &&
   dumper_dir orchestration_templates &&
   dumper_dir scanitems &&
+  dumper_dir scriptsrc &&
+  dumper_dir schedules &&
   dumper_file customization_templates || exit 1
 }
 
@@ -240,6 +242,8 @@ function load {
       loader_dir widgets &&
       loader_dir reports &&
       loader_dir scanitems &&
+      loader_dir scriptsrc &&
+      loader_dir schedules &&
       loader_dir service_catalogs || exit 1
       ;;
     * )
@@ -256,12 +260,12 @@ verify_remote git || exit 1
 #verify_remote rpm-build || exit 1
 verify_rhconsulting_scripts || exit 1
 
-if [ $NAME == "cfme2here" ]
+if [[ $NAME == "cfme2here" || $NAME == "cfme2git" ]]
 then
   make_dirs &&
   dump &&
   clean_dirs || exit 1
-elif [ $NAME == "automate2here" ]
+elif [[ $NAME == "automate2here" || $NAME == "automate2git" ]]
 then
   make_dirs &&
   dump_automate &&
@@ -278,3 +282,9 @@ then
   clean_dirs || exit 1
 fi
 
+if [[ $NAME == 'cfme2git' || $NAME == 'automate2git' ]]
+then
+  git add -A &&
+  git commit -m "Export from $HOST on $(date)" &&
+  git push || exit 1
+fi
