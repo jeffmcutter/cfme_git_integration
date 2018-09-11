@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
+
+cd /root/git/cloudforms && cfme2git > /tmp/.cfme2git 2>&1
