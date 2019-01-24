@@ -284,8 +284,8 @@ fi
 
 if [[ $NAME == 'cfme2git' || $NAME == 'automate2git' ]]
 then
-  git pull --rebase &&
   git add -A &&
   git commit -m "Export from $HOST on $(date)" &&
+  git pull --rebase &&
   git push || exit 1
 fi
